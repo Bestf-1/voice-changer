@@ -4,6 +4,7 @@ from fastapi import APIRouter
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from fastapi import UploadFile, Form
+from download_logic import run_download_script
 
 from restapi.mods.FileUploader import upload_file
 from voice_changer.VoiceChangerManager import VoiceChangerManager
@@ -26,6 +27,7 @@ class MMVC_Rest_Fileuploader:
         self.router.add_api_route("/update_model_default", self.post_update_model_default, methods=["POST"])
         self.router.add_api_route("/update_model_info", self.post_update_model_info, methods=["POST"])
         self.router.add_api_route("/upload_model_assets", self.post_upload_model_assets, methods=["POST"])
+        self.router.add_api_route("/download_model", self.post_download_model, methods=["POST"])
 
     def post_upload_file(self, file: UploadFile, filename: str = Form(...)):
         try:
@@ -110,3 +112,16 @@ class MMVC_Rest_Fileuploader:
             return JSONResponse(content=json_compatible_item_data)
         except Exception as e:
             logger.exception(e)
+
+    def post_download_model(self, url: str = Form(...), slot: int = Form(...)):
+        try:
+            logger.info(f"Received download request: URL={url}, Slot={slot}")
+            
+            # Call the logic from download_logic.py
+            logs = run_download_script(url, slot)
+            
+            # Return the logs to the frontend
+            return JSONResponse(content=jsonable_encoder({"status": "success", "logs": logs}))
+        except Exception as e:
+            logger.exception(e)
+            return JSONResponse(content=jsonable_encoder({"status": "error", "message": str(e)}))
